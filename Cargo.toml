@@ -29,3 +29,6 @@ tower = "0.5.2"
 [patch.crates-io]
 ort = { git = "https://github.com/pykeio/ort", rev = "15bd15cb3e16a6cfa41182fa8ebf468e5eee204e" }
 ort-sys = { git = "https://github.com/pykeio/ort", rev = "15bd15cb3e16a6cfa41182fa8ebf468e5eee204e" }
+
+[build-dependencies]
+ureq = { version = "3.1.4", features = ["platform-verifier"] }
