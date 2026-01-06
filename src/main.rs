@@ -8,6 +8,7 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!("starting");
 
     download_model().await?;
+    ort::init().commit()?;
 
     serve().await?;
 
