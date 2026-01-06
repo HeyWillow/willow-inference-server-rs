@@ -1,8 +1,13 @@
-use axum::{Router, routing::get};
+use axum::{
+    Router,
+    routing::{get, post},
+};
 use tokio::net::TcpListener;
 
 pub fn router() -> axum::Router {
-    Router::new().route("/health", get(crate::routes::health::check))
+    Router::new()
+        .route("/health", get(crate::routes::health::check))
+        .route("/api/willow", post(crate::routes::api::willow::post))
 }
 
 /// # Errors
