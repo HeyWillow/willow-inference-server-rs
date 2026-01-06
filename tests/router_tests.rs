@@ -1,26 +1,39 @@
 mod tests {
+    use std::{fs::File, io::Read};
+
     use axum::{
         body::Body,
         http::{self, Request, StatusCode},
     };
     use tower::ServiceExt;
-    use wis_rs::{
-        router::router,
-        routes::api::willow::{RESPONSE_TEXT, WisSpeechToTextResponse},
-        state::State,
-    };
+    use wis_rs::{router::router, routes::api::willow::WisSpeechToTextResponse, state::State};
 
     #[tokio::test]
     async fn test_router_api_willow_post() {
+        const TESTDATA_FILE: &str = "tests/assets/whats_the_time.pcm";
+        const TESTDATA_RESPONSE: &str = "what's the time";
+
+        let mut test_data: Vec<u8> = Vec::new();
+
+        File::open(TESTDATA_FILE)
+            .unwrap_or_else(|e| panic!("failed to open testdata file '{TESTDATA_FILE}': {e}"))
+            .read_to_end(&mut test_data)
+            .unwrap_or_else(|e| panic!("failed to read testdata file '{TESTDATA_FILE}': {e}"));
+
         let state = State::new();
-        let router = router(state);
+        let router: axum::Router = router(state);
+
         let response = router
             .oneshot(
                 Request::builder()
                     .method(http::Method::POST)
                     .header(http::header::CONTENT_TYPE, "application/json")
+                    .header("x-audio-bits", 16)
+                    .header("x-audio-channel", 1)
+                    .header("x-audio-codec", "PCM")
+                    .header("x-audio-sample-rate", 16000)
                     .uri("/api/willow")
-                    .body(Body::empty())
+                    .body(Body::from(test_data))
                     .unwrap(),
             )
             .await
@@ -37,11 +50,12 @@ mod tests {
         let body = axum::body::to_bytes(response.into_body(), usize::MAX)
             .await
             .unwrap();
+
         let data: WisSpeechToTextResponse =
             serde_json::from_slice(&body).expect("Failed to deserialize JSON response");
 
         assert_eq!(content_type, "application/json");
-        assert_eq!(data.text, RESPONSE_TEXT);
+        assert_eq!(data.text, TESTDATA_RESPONSE);
         assert_eq!(status, StatusCode::OK);
     }
 
