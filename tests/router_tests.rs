@@ -7,11 +7,13 @@ mod tests {
     use wis_rs::{
         router::router,
         routes::api::willow::{RESPONSE_TEXT, WisSpeechToTextResponse},
+        state::State,
     };
 
     #[tokio::test]
     async fn test_router_api_willow_post() {
-        let router = router();
+        let state = State::new();
+        let router = router(state);
         let response = router
             .oneshot(
                 Request::builder()
@@ -45,7 +47,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_router_health_get() {
-        let router = router();
+        let state = State::new();
+        let router = router(state);
         let response = router
             .oneshot(
                 Request::builder()
