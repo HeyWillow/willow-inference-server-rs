@@ -84,11 +84,16 @@ pub async fn post(
         data.len()
     );
 
+    let Some(stt_engine) = state.stt_engine.as_ref() else {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            String::from("failed to load STT engine"),
+        ));
+    };
+
     let start = Instant::now();
     let transcript =
-        state
-            .stt_engine
-            .transcribe(samples, sample_rate, channels, Some(TimestampMode::Words));
+        stt_engine.transcribe(samples, sample_rate, channels, Some(TimestampMode::Words));
 
     let Ok(transcript) = transcript else {
         return Err((

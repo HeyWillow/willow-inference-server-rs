@@ -1,7 +1,7 @@
 use crate::stt::SttEngine;
 
 pub struct State {
-    pub stt_engine: SttEngine,
+    pub stt_engine: Option<SttEngine>,
 }
 
 impl Default for State {
@@ -13,8 +13,12 @@ impl Default for State {
 impl State {
     #[must_use]
     pub fn new() -> Self {
-        let stt_engine = SttEngine::new();
+        Self { stt_engine: None }
+    }
 
-        Self { stt_engine }
+    #[must_use]
+    pub fn with_stt_engine(mut self, stt_engine: SttEngine) -> Self {
+        self.stt_engine = Some(stt_engine);
+        self
     }
 }
