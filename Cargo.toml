@@ -9,6 +9,7 @@ anyhow = "1.0.98"
 axum = { version = "0.8.8", features = ["http2"] }
 futures-util = "0.3.31"
 hf-hub = { version = "0.4.3", default-features = false, features = ["rustls-tls", "tokio"] }
+hound = "3.5.1"
 ort = { git = "https://github.com/pykeio/ort", rev = "15bd15cb3e16a6cfa41182fa8ebf468e5eee204e", version = "2.0.0-rc.10", default-features = false, features = ["copy-dylibs", "download-binaries", "ndarray", "std", "tls-rustls", "tracing"] }
 parakeet-rs = { version = "0.2.7", default-features = false }
 serde = { version = "1.0.228", features = ["derive"] }
