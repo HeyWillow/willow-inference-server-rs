@@ -6,7 +6,9 @@ mod tests {
         http::{self, Request, StatusCode},
     };
     use tower::ServiceExt;
-    use wis_rs::{router::router, routes::api::willow::WisSpeechToTextResponse, state::State};
+    use wis_rs::{
+        router::router, routes::api::willow::WisSpeechToTextResponse, state::State, stt::SttEngine,
+    };
 
     #[tokio::test]
     async fn test_router_api_willow_post() {
@@ -20,7 +22,8 @@ mod tests {
             .read_to_end(&mut test_data)
             .unwrap_or_else(|e| panic!("failed to read testdata file '{TESTDATA_FILE}': {e}"));
 
-        let state = State::new();
+        let stt_engine = SttEngine::new();
+        let state = State::new().with_stt_engine(stt_engine);
         let router: axum::Router = router(state);
 
         let response = router
@@ -50,6 +53,8 @@ mod tests {
         let body = axum::body::to_bytes(response.into_body(), usize::MAX)
             .await
             .unwrap();
+
+        println!("body: {body:?}");
 
         let data: WisSpeechToTextResponse =
             serde_json::from_slice(&body).expect("Failed to deserialize JSON response");
