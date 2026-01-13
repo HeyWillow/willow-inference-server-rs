@@ -10,7 +10,7 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!("starting");
 
     download_model().await?;
-    ort::init().commit()?;
+    ort::init().commit();
 
     let stt_engine = SttEngine::new();
 
