@@ -10,6 +10,7 @@ axum = { version = "0.8.8", features = ["http2"] }
 futures-util = "0.3.31"
 hf-hub = { version = "0.4.3", default-features = false, features = ["rustls-tls", "tokio"] }
 hound = "3.5.1"
+mimalloc = "0.1.48"
 ort = { version = "2.0.0-rc.11", default-features = false, features = ["copy-dylibs", "download-binaries", "ndarray", "std", "tls-rustls", "tracing"] }
 parakeet-rs = { version = "0.2.7", default-features = false }
 serde = { version = "1.0.228", features = ["derive"] }
