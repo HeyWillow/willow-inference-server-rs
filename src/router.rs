@@ -11,6 +11,7 @@ use crate::state::State;
 pub fn router(state: State) -> axum::Router {
     Router::new()
         .route("/health", get(crate::routes::health::check))
+        .route("/api/tts", get(crate::routes::api::tts::get))
         .route("/api/willow", post(crate::routes::api::willow::post))
         .with_state(Arc::new(state))
 }
