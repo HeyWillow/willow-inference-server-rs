@@ -19,13 +19,13 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!("starting");
 
     #[cfg(feature = "stt")]
-    download_model().await?;
+    let stt_model_dir = download_model().await?;
 
     #[cfg(any(feature = "stt", feature = "tts"))]
     ort::init().commit();
 
     #[cfg(feature = "stt")]
-    let stt_engine = SttEngine::new()?;
+    let stt_engine = SttEngine::new(stt_model_dir)?;
     #[cfg(feature = "tts")]
     let tts_engine = TtsEngine::new();
 

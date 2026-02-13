@@ -2,7 +2,7 @@ use std::{
     env::{self},
     fs,
     os::unix::fs::symlink,
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 use anyhow::Context;
@@ -17,7 +17,7 @@ use hf_hub::api::tokio::Api;
 /// - when we fail to create the `hf_hub` API client
 /// - when we fail to download any of the model files
 /// - when we fail to get $HOME environment variable
-pub async fn download_model() -> anyhow::Result<()> {
+pub async fn download_model() -> anyhow::Result<PathBuf> {
     let model_name = env::var("WIS_RS_STT_MODEL").unwrap_or(String::from("model.onnx"));
 
     let model = format!("onnx/{model_name}");
@@ -64,5 +64,5 @@ pub async fn download_model() -> anyhow::Result<()> {
         }
     }
 
-    Ok(())
+    Ok(model_dir.to_path_buf())
 }

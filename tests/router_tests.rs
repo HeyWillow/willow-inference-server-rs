@@ -23,7 +23,8 @@ mod tests {
             .read_to_end(&mut test_data)
             .unwrap_or_else(|e| panic!("failed to read testdata file '{TESTDATA_FILE}': {e}"));
 
-        let stt_engine = SttEngine::new();
+        let stt_model_dir = std::path::PathBuf::from("./models/stt");
+        let stt_engine = SttEngine::new(stt_model_dir).expect("failed to create STT engine");
         let state = State::new().with_stt_engine(stt_engine);
         let router: axum::Router = router(state);
 
