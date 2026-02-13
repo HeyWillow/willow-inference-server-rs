@@ -6,9 +6,9 @@ mod tests {
         http::{self, Request, StatusCode},
     };
     use tower::ServiceExt;
-    use wis_rs::{router::router, state::State};
     #[cfg(feature = "stt")]
-    use wis_rs::{routes::api::willow::WisSpeechToTextResponse, stt::SttEngine};
+    use wis_rs::{inference::stt::SttEngine, routes::api::willow::WisSpeechToTextResponse};
+    use wis_rs::{router::router, state::State};
 
     #[cfg(feature = "stt")]
     #[tokio::test]

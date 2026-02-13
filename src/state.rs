@@ -1,7 +1,7 @@
 #[cfg(feature = "stt")]
-use crate::stt::SttEngine;
+use crate::inference::stt::SttEngine;
 #[cfg(feature = "tts")]
-use crate::tts::TtsEngine;
+use crate::inference::tts::TtsEngine;
 
 pub struct State {
     #[cfg(feature = "stt")]

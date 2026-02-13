@@ -2,13 +2,13 @@ use mimalloc::MiMalloc;
 
 #[cfg(all(feature = "hf", feature = "stt"))]
 use wis_rs::hf::download_model;
+#[cfg(feature = "stt")]
+use wis_rs::inference::stt::SttEngine;
+#[cfg(feature = "tts")]
+use wis_rs::inference::tts::TtsEngine;
 use wis_rs::router::serve;
 use wis_rs::state::State;
-#[cfg(feature = "stt")]
-use wis_rs::stt::SttEngine;
 use wis_rs::trace::init_tracing;
-#[cfg(feature = "tts")]
-use wis_rs::tts::TtsEngine;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
