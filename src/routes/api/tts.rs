@@ -38,6 +38,7 @@ pub async fn get(
             .into_response();
     };
 
+    let text = parameters.text.clone();
     let tts_audio = spawn_blocking(move || tts_engine.synthesize(&parameters.text, 0, 1.0)).await;
 
     let Ok(Ok(tts_audio)) = tts_audio else {
@@ -48,7 +49,15 @@ pub async fn get(
             .into_response();
     };
 
-    let Ok(audio_bytes) = encode_wav(&tts_audio.samples, tts_audio.sample_rate) else {
+    tracing::info!(
+        "inference took {}s: {} - speedup: {}x",
+        tts_audio.time,
+        text,
+        tts_audio.speedup
+    );
+
+    let Ok(audio_bytes) = encode_wav(&tts_audio.output.samples, tts_audio.output.sample_rate)
+    else {
         return (
             StatusCode::INTERNAL_SERVER_ERROR,
             String::from("failed to encode audio in WAV"),
