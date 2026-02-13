@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 #[cfg(feature = "stt")]
 use axum::routing::post;
-use axum::{Router, routing::get};
+use axum::{Router, response::Redirect, routing::get};
 use tokio::net::TcpListener;
 
 use crate::state::State;
@@ -10,6 +10,7 @@ use crate::state::State;
 pub fn router(state: State) -> axum::Router {
     #[allow(unused_mut)]
     let mut router = Router::new()
+        .route("/", get(|| async { Redirect::temporary("/about") }))
         .route("/about", get(crate::ui::handlers::about))
         .route("/health", get(crate::routes::health::check));
 
