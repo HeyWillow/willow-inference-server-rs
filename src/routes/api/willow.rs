@@ -10,7 +10,6 @@ use axum::{
 use futures_util::StreamExt;
 use parakeet_rs::TimestampMode;
 use serde::{Deserialize, Serialize};
-use tokio::time::Instant;
 
 use crate::{state::State, util::http::parse_header};
 
@@ -77,7 +76,6 @@ pub async fn post(
     );
 
     let samples: Vec<f32> = samples.iter().map(|&s| f32::from(s)).collect();
-    let audio_duration = (samples.len() as u64 * 1000) / u64::from(sample_rate);
 
     tracing::debug!(
         "Headers: {headers:#?}, Query: {query:#?}, Length: {}",
@@ -91,7 +89,6 @@ pub async fn post(
         ));
     };
 
-    let start = Instant::now();
     let transcript =
         stt_engine.transcribe(samples, sample_rate, channels, Some(TimestampMode::Words));
 
@@ -102,27 +99,20 @@ pub async fn post(
         ));
     };
 
-    let infer_time = start.elapsed().as_secs_f64();
-    let infer_time_ms = infer_time * 1000.0;
-    #[allow(clippy::cast_precision_loss)]
-    let infer_speedup = if infer_time_ms > 0.0 {
-        (audio_duration as f64) / infer_time_ms
-    } else {
-        0.0
-    };
-
     tracing::debug!("{transcript:?}");
     tracing::info!(
-        "inference took {infer_time}s: {} - speedup: {infer_speedup}x",
-        transcript.text
+        "inference took {}s: {} - speedup: {}x",
+        transcript.time,
+        transcript.output.text,
+        transcript.speedup
     );
 
     let response = WisSpeechToTextResponse {
-        audio_duration,
-        infer_speedup: Some(infer_speedup),
-        infer_time: Some(infer_time),
+        audio_duration: transcript.duration,
+        infer_speedup: Some(transcript.speedup),
+        infer_time: Some(transcript.time),
         language: String::from("en"),
-        text: transcript.text,
+        text: transcript.output.text,
     };
 
     Ok(Json(response))
