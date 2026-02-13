@@ -12,11 +12,11 @@ futures-util = "0.3.31"
 hf-hub = { version = "0.4.3", default-features = false, features = ["rustls-tls", "tokio"], optional = true }
 hound = "3.5.1"
 mimalloc = "0.1.48"
-ort = { version = "2.0.0-rc.11", default-features = false, features = ["copy-dylibs", "download-binaries", "ndarray", "std", "tls-rustls", "tracing"], optional = true }
+ort = { version = "2.0.0-rc.11", default-features = false, features = ["load-dynamic", "ndarray", "std", "tls-rustls", "tracing"], optional = true }
 parakeet-rs = { version = "0.2.7", default-features = false, optional = true }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.148"
-sherpa-rs = { version = "0.6.8", default-features = false, features = ["tts"], optional = true }
+sherpa-rs = { version = "0.6.8", default-features = false, features = ["static", "tts"], optional = true }
 tokio = { version = "1.49.0", features = ["macros", "net", "rt-multi-thread"] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
@@ -36,7 +36,6 @@ built = { version = "0.8.0", features = ["git2"] }
 cargo-license = "0.7.0"
 cargo_metadata = "0.21"
 serde_json = "1.0.148"
-ureq = { version = "3.1.4", features = ["platform-verifier"] }
 
 [features]
 default = ["hf", "stt", "tts"]
