@@ -25,7 +25,7 @@ async fn main() -> anyhow::Result<()> {
     ort::init().commit();
 
     #[cfg(feature = "stt")]
-    let stt_engine = SttEngine::new();
+    let stt_engine = SttEngine::new()?;
     #[cfg(feature = "tts")]
     let tts_engine = TtsEngine::new();
 

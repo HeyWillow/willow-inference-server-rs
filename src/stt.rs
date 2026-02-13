@@ -1,31 +1,26 @@
 use std::{env, sync::Mutex};
 
+use anyhow::Result;
 use parakeet_rs::{Parakeet, TimestampMode, Transcriber, TranscriptionResult};
 
 pub struct SttEngine {
     pub parakeet: Mutex<Parakeet>,
 }
 
-impl Default for SttEngine {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl SttEngine {
-    #[must_use]
-    /// # Panics
-    /// When `Parakeet` fails to load the model
-    pub fn new() -> Self {
-        let home = env::var("HOME").unwrap();
+    /// # Errors
+    /// - When HOME environment variable is unset
+    /// - When `Parakeet` fails to load the model
+    pub fn new() -> Result<Self> {
+        let home = env::var("HOME")?;
         let model_dir = format!(
             "{home}/.cache/huggingface/hub/models--onnx-community--parakeet-ctc-0.6b-ONNX/snapshots/7df2cab7aed886b8b7f80d68a8214007e4847601/onnx"
         );
 
-        let parakeet = Parakeet::from_pretrained(model_dir, None).unwrap();
+        let parakeet = Parakeet::from_pretrained(model_dir, None)?;
         let parakeet = Mutex::new(parakeet);
 
-        Self { parakeet }
+        Ok(Self { parakeet })
     }
 
     /// # Errors
