@@ -3,6 +3,9 @@ use cargo_metadata::MetadataCommand;
 use serde_json::Value;
 
 fn main() {
+    #[cfg(all(feature = "hf", not(feature = "stt")))]
+    compile_error!("feature `hf` is only used by `stt`, aborting build");
+
     built::write_built_file().expect("failed to gather build-time info");
 
     let mut cmd_metadata = MetadataCommand::new();

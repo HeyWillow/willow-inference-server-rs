@@ -1,6 +1,6 @@
 use mimalloc::MiMalloc;
 
-#[cfg(feature = "stt")]
+#[cfg(all(feature = "hf", feature = "stt"))]
 use wis_rs::hf::download_model;
 use wis_rs::router::serve;
 use wis_rs::state::State;
@@ -18,8 +18,10 @@ async fn main() -> anyhow::Result<()> {
     init_tracing()?;
     tracing::info!("starting");
 
-    #[cfg(feature = "stt")]
+    #[cfg(all(feature = "hf", feature = "stt"))]
     let stt_model_dir = download_model().await?;
+    #[cfg(all(not(feature = "hf"), feature = "stt"))]
+    let stt_model_dir = std::path::PathBuf::from("./models/stt");
 
     #[cfg(any(feature = "stt", feature = "tts"))]
     ort::init().commit();

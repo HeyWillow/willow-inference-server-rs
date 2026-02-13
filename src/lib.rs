@@ -2,6 +2,7 @@ pub mod built_info {
     include!(concat!(env!("OUT_DIR"), "/built.rs"));
 }
 
+#[cfg(feature = "hf")]
 pub mod hf;
 pub mod router;
 pub mod routes;
