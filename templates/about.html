@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}About{% endblock %}
+
+{% block extra_styles %}
+        .about-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+            margin-bottom: 24px;
+        }
+        .about-card h2 {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 16px;
+            color: #583759;
+        }
+        .version {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        th {
+            text-align: left;
+            padding: 8px 12px;
+            background: #f9f9f9;
+            border-bottom: 2px solid #eee;
+            color: #583759;
+            font-weight: 500;
+        }
+        td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #eee;
+        }
+        tr:hover { background: #faf5fb; }
+        .license-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            background: #f0e6f1;
+            color: #583759;
+        }
+{% endblock %}
+
+{% block content %}
+<div class="about-card">
+    <h2>Willow Inference Server</h2>
+    <p class="version">Version: {{ version }}</p>
+    {% if let Some(hash) = git_hash %}
+    <p class="version">Git Hash: {{ hash }}</p>
+    {% endif %}
+</div>
+
+<div class="about-card">
+    <h2>Third-Party Licenses</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Crate</th>
+                <th>Version</th>
+                <th>License</th>
+                <th>Authors</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for dep in licenses %}
+            <tr>
+                <td>{{ dep.name }}</td>
+                <td>{{ dep.version }}</td>
+                <td><span class="license-badge">{{ dep.license }}</span></td>
+                <td>
+                    {% for author in dep.authors_list() %}{{ author }}<br />
+                    {% endfor %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
