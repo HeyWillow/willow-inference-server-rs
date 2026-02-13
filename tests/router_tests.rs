@@ -11,6 +11,7 @@ mod tests {
     use wis_rs::{router::router, state::State};
 
     #[cfg(feature = "stt")]
+    #[ignore = "test requires STT model"]
     #[tokio::test]
     async fn test_router_api_willow_post() {
         const TESTDATA_FILE: &str = "tests/assets/whats_the_time.pcm";
