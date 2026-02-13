@@ -35,6 +35,7 @@ pub async fn serve(state: State) -> anyhow::Result<()> {
     let address = "[::]:19001";
 
     let listener = TcpListener::bind(address).await?;
+    tracing::info!("listening on {}", format!("http://{address}"));
 
     axum::serve(listener, router).await?;
     Ok(())
