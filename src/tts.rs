@@ -1,3 +1,4 @@
+#[cfg(feature = "tts")]
 use std::sync::{Arc, Mutex};
 
 use anyhow::{Result, anyhow};

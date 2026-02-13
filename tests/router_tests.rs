@@ -6,10 +6,11 @@ mod tests {
         http::{self, Request, StatusCode},
     };
     use tower::ServiceExt;
-    use wis_rs::{
-        router::router, routes::api::willow::WisSpeechToTextResponse, state::State, stt::SttEngine,
-    };
+    use wis_rs::{router::router, state::State};
+    #[cfg(feature = "stt")]
+    use wis_rs::{routes::api::willow::WisSpeechToTextResponse, stt::SttEngine};
 
+    #[cfg(feature = "stt")]
     #[tokio::test]
     async fn test_router_api_willow_post() {
         const TESTDATA_FILE: &str = "tests/assets/whats_the_time.pcm";
