@@ -56,15 +56,16 @@ impl TtsEngine {
 
         let time = start.elapsed().as_secs_f64();
         let time_ms = time * 1000.0;
+        let duration = (speech.samples.len() as u64 * 1000) / u64::from(speech.sample_rate);
         #[allow(clippy::cast_precision_loss)]
-        let speedup = if time_ms > 0.0 {
-            (f64::from(speech.duration)) / time_ms
+        let speedup = if time > 0.0 {
+            duration as f64 / time_ms
         } else {
             0.0
         };
 
         let result = InferenceResult {
-            duration: u64::try_from(speech.duration).unwrap_or(0),
+            duration,
             output: speech,
             speedup,
             time,
