@@ -1,26 +1,31 @@
 #[cfg(feature = "tts")]
-use std::sync::{Arc, Mutex};
+use std::thread;
 
 use anyhow::{Result, anyhow};
 use sherpa_rs::tts::{TtsAudio, VitsTts, VitsTtsConfig};
-use tokio::time::Instant;
+use tokio::{
+    sync::{mpsc, oneshot},
+    time::Instant,
+};
 
 use crate::inference::InferenceResult;
 
 #[derive(Clone)]
 pub struct TtsEngine {
-    tts: Arc<Mutex<VitsTts>>,
+    jobs: mpsc::Sender<TtsJob>,
 }
 
-impl Default for TtsEngine {
-    fn default() -> Self {
-        Self::new()
-    }
+struct TtsJob {
+    text: String,
+    sid: i32,
+    speed: f32,
+    response: oneshot::Sender<Result<(TtsAudio, f64)>>,
 }
 
 impl TtsEngine {
-    #[must_use]
-    pub fn new() -> Self {
+    /// # Errors
+    /// - when the TTS worker thread cannot be spawned
+    pub fn new() -> Result<Self> {
         let config = VitsTtsConfig {
             model: "./models/tts/vits-piper-en_US-amy-medium/en_US-amy-medium.onnx".to_string(),
             tokens: "./models/tts/vits-piper-en_US-amy-medium/tokens.txt".to_string(),
@@ -30,30 +35,46 @@ impl TtsEngine {
             ..Default::default()
         };
 
-        let tts = Arc::new(Mutex::new(VitsTts::new(config)));
-        Self { tts }
+        let mut tts = VitsTts::new(config);
+        let (jobs, mut receiver) = mpsc::channel::<TtsJob>(1);
+
+        thread::Builder::new()
+            .spawn(move || {
+                while let Some(job) = receiver.blocking_recv() {
+                    let start = Instant::now();
+                    let speech = tts
+                        .create(&job.text, job.sid, job.speed)
+                        .map(|speech| (speech, start.elapsed().as_secs_f64()))
+                        .map_err(|e| anyhow!("{e:#?}"));
+                    let _ = job.response.send(speech);
+                }
+            })?;
+
+        Ok(Self { jobs })
     }
 
     /// # Errors
-    /// - when the mutex is poisoned
-    pub fn synthesize(
+    /// - when the inference worker has stopped
+    pub async fn synthesize(
         &self,
         text: &str,
         sid: i32,
         speed: f32,
     ) -> Result<InferenceResult<TtsAudio>> {
-        let mut tts = self
-            .tts
-            .lock()
-            .map_err(|e| anyhow!("TTS mutex poisoned: {e:#?}"))?;
+        let (response, receiver) = oneshot::channel();
+        self.jobs
+            .send(TtsJob {
+                text: text.to_owned(),
+                sid,
+                speed,
+                response,
+            })
+            .await
+            .map_err(|_| anyhow!("TTS worker has stopped"))?;
 
-        let start = Instant::now();
-
-        let speech = tts
-            .create(text, sid, speed)
-            .map_err(|e| anyhow!("{e:#?}"))?;
-
-        let time = start.elapsed().as_secs_f64();
+        let (speech, time) = receiver
+            .await
+            .map_err(|_| anyhow!("TTS worker has stopped"))??;
         let time_ms = time * 1000.0;
         let duration = (speech.samples.len() as u64 * 1000) / u64::from(speech.sample_rate);
         #[allow(clippy::cast_precision_loss)]
