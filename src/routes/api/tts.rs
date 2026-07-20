@@ -7,7 +7,6 @@ use axum::{
     response::IntoResponse,
 };
 use serde::Deserialize;
-use tokio::task::spawn_blocking;
 
 use crate::{state::State, util::audio::encode_wav};
 
@@ -39,9 +38,9 @@ pub async fn get(
     };
 
     let text = parameters.text.clone();
-    let tts_audio = spawn_blocking(move || tts_engine.synthesize(&parameters.text, 0, 1.0)).await;
+    let tts_audio = tts_engine.synthesize(&parameters.text, 0, 1.0).await;
 
-    let Ok(Ok(tts_audio)) = tts_audio else {
+    let Ok(tts_audio) = tts_audio else {
         return (
             StatusCode::INTERNAL_SERVER_ERROR,
             String::from("failed to get audio from TTS engine"),

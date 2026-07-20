@@ -29,7 +29,7 @@ async fn main() -> anyhow::Result<()> {
     #[cfg(feature = "stt")]
     let stt_engine = SttEngine::new(stt_model_dir)?;
     #[cfg(feature = "tts")]
-    let tts_engine = TtsEngine::new();
+    let tts_engine = TtsEngine::new()?;
 
     #[allow(unused_mut)]
     let mut state = State::new();
