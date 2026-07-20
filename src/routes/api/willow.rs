@@ -89,8 +89,9 @@ pub async fn post(
         ));
     };
 
-    let transcript =
-        stt_engine.transcribe(samples, sample_rate, channels, Some(TimestampMode::Words));
+    let transcript = stt_engine
+        .transcribe(samples, sample_rate, channels, Some(TimestampMode::Words))
+        .await;
 
     let Ok(transcript) = transcript else {
         return Err((
