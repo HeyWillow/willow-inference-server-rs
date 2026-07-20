@@ -39,6 +39,7 @@ impl TtsEngine {
         let (jobs, mut receiver) = mpsc::channel::<TtsJob>(1);
 
         thread::Builder::new()
+            .name(String::from("wis-tts"))
             .spawn(move || {
                 while let Some(job) = receiver.blocking_recv() {
                     let start = Instant::now();

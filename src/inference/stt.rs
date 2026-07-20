@@ -29,7 +29,8 @@ impl SttEngine {
         let mut parakeet = Parakeet::from_pretrained(model_dir, None)?;
         let (jobs, mut receiver) = mpsc::channel::<SttJob>(1);
 
-        thread::Builder::new().spawn(move || {
+        let worker = thread::Builder::new().name(String::from("wis-stt"));
+        worker.spawn(move || {
             while let Some(job) = receiver.blocking_recv() {
                 let start = Instant::now();
                 let output = parakeet
