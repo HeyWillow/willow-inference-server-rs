@@ -40,6 +40,7 @@ impl TtsEngine {
 
         thread::Builder::new()
             .name(String::from("wis-tts"))
+            .stack_size(8 * 1024 * 1024)
             .spawn(move || {
                 while let Some(job) = receiver.blocking_recv() {
                     let start = Instant::now();
