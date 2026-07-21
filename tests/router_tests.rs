@@ -83,4 +83,27 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::OK);
     }
+
+    #[cfg(feature = "stt")]
+    #[tokio::test]
+    async fn test_router_api_willow_rejects_empty_audio() {
+        let state = State::new();
+        let router = router(state);
+        let response = router
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .header("x-audio-bits", 16)
+                    .header("x-audio-channel", 1)
+                    .header("x-audio-codec", "PCM")
+                    .header("x-audio-sample-rate", 16000)
+                    .uri("/api/willow")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
 }
