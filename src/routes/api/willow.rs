@@ -67,6 +67,10 @@ pub async fn post(
         }
     }
 
+    if data.is_empty() {
+        return Err((StatusCode::BAD_REQUEST, String::from("audio body is empty")));
+    }
+
     let n_samples = data.len() / 2;
     let mut samples = Vec::with_capacity(n_samples);
 
