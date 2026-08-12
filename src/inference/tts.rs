@@ -22,10 +22,9 @@ impl TtsEngine {
     #[must_use]
     pub fn new() -> Self {
         let config = VitsTtsConfig {
-            model: "./models/tts/vits-piper-en_US-amy-medium-fp16/en_US-amy-medium.onnx"
-                .to_string(),
-            tokens: "./models/tts/vits-piper-en_US-amy-medium-fp16/tokens.txt".to_string(),
-            data_dir: "./models/tts/vits-piper-en_US-amy-medium-fp16/espeak-ng-data".to_string(),
+            model: "./models/tts/vits-piper-en_US-amy-medium/en_US-amy-medium.onnx".to_string(),
+            tokens: "./models/tts/vits-piper-en_US-amy-medium/tokens.txt".to_string(),
+            data_dir: "./models/tts/vits-piper-en_US-amy-medium/espeak-ng-data".to_string(),
             length_scale: 1.0,
             silence_scale: 1.1,
             ..Default::default()
