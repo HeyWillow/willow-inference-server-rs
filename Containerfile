@@ -20,7 +20,7 @@ RUN curl --location \
 
 # Download TTS model files
 RUN curl --location \
-  https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-en_US-amy-medium-fp16.tar.bz2 \
+  https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-en_US-amy-medium.tar.bz2 \
   | tar xjf - -C /app/models/tts
 
 
