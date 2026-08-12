@@ -1,4 +1,4 @@
-FROM alpine:3.23 AS models
+FROM alpine:3.24 AS models
 
 RUN --mount=type=cache,target=/var/cache/apk \
   apk add \
@@ -24,7 +24,7 @@ RUN curl --location \
   | tar xjf - -C /app/models/tts
 
 
-FROM rust:1.97.1-alpine3.23 AS builder
+FROM rust:1.97.1-alpine3.24 AS builder
 
 ARG BUILD_PROFILE=release
 
@@ -56,7 +56,7 @@ RUN \
     cargo build --release --no-default-features --features stt,tts
 
 
-FROM alpine:3.23
+FROM alpine:3.24
 
 COPY --from=models /app/models /app/models
 
