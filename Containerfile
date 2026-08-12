@@ -24,7 +24,7 @@ RUN curl --location \
   | tar xjf - -C /app/models/tts
 
 
-FROM rust:1.92-alpine3.23 AS builder
+FROM rust:1.97.1-alpine3.23 AS builder
 
 ARG BUILD_PROFILE=release
 
