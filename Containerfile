@@ -39,8 +39,7 @@ RUN --mount=type=cache,target=/var/cache/apk \
     espeak-ng-dev \
     llvm21-dev \
     onnxruntime-dev \
-    pcaudiolib-dev \
-    rustfmt
+    pcaudiolib-dev
 
 COPY . .
 
