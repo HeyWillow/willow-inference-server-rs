@@ -2,7 +2,7 @@ use askama::Template;
 use axum::response::Html;
 
 use crate::built_info;
-use crate::ui::templates::{AboutTemplate, LicenseEntry};
+use crate::ui::templates::{AboutTemplate, LicenseEntry, SttTemplate};
 
 /// # Panics
 /// * when embeddeded licenses.json cannot be deserialized
@@ -15,6 +15,14 @@ pub async fn about() -> Html<String> {
         git_hash: built_info::GIT_COMMIT_HASH_SHORT,
         licenses,
         version: built_info::PKG_VERSION,
+    };
+
+    Html(template.render().unwrap_or_default())
+}
+
+pub async fn stt() -> Html<String> {
+    let template = SttTemplate {
+        stt_enabled: cfg!(feature = "stt"),
     };
 
     Html(template.render().unwrap_or_default())

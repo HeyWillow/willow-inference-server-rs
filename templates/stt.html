@@ -1,0 +1,357 @@
+{% extends "base.html" %}
+
+{% block title %}Speech to Text{% endblock %}
+
+{% block extra_styles %}
+        .stt-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        }
+        .stt-card h2 {
+            color: #583759;
+            font-size: 20px;
+            font-weight: 500;
+            margin-bottom: 12px;
+        }
+        .stt-card p { margin-bottom: 16px; }
+        .record-button {
+            appearance: none;
+            background: #583759;
+            border: 0;
+            border-radius: 6px;
+            color: #fff;
+            cursor: pointer;
+            font: inherit;
+            min-width: 190px;
+            padding: 12px 20px;
+        }
+        .record-button:hover { background: #704872; }
+        .record-button.recording { background: #a12828; }
+        .record-button:disabled {
+            background: #aaa;
+            cursor: not-allowed;
+        }
+        .status {
+            color: #666;
+            min-height: 24px;
+            margin-top: 16px;
+        }
+        .transcript {
+            background: #faf5fb;
+            border-left: 4px solid #583759;
+            display: none;
+            font-size: 20px;
+            line-height: 1.5;
+            margin-top: 16px;
+            padding: 16px;
+            white-space: pre-wrap;
+        }
+        .details {
+            color: #666;
+            display: none;
+            font-size: 13px;
+            margin-top: 8px;
+        }
+{% endblock %}
+
+{% block content %}
+<section class="stt-card">
+    <h2>Speech to Text</h2>
+    {% if stt_enabled %}
+    <p>Record a short utterance and submit it to this server for transcription.</p>
+    <button id="record-button" class="record-button" type="button" aria-pressed="false">
+        Start recording
+    </button>
+    <p id="status" class="status" role="status" aria-live="polite">Ready.</p>
+    <div id="transcript" class="transcript" aria-live="polite"></div>
+    <p id="details" class="details"></p>
+    {% else %}
+    <p>This server was built without speech-to-text support.</p>
+    {% endif %}
+</section>
+
+{% if stt_enabled %}
+<script>
+(() => {
+    "use strict";
+
+    const TARGET_SAMPLE_RATE = 16000;
+    const MAX_RECORDING_MS = 30000;
+    const button = document.getElementById("record-button");
+    const status = document.getElementById("status");
+    const transcript = document.getElementById("transcript");
+    const details = document.getElementById("details");
+
+    let audioContext;
+    let captureNode;
+    let mediaSource;
+    let mediaStream;
+    let recording = false;
+    let chunks = [];
+    let recordingTimer;
+
+    const workletSource = `
+        class WillowCaptureProcessor extends AudioWorkletProcessor {
+            constructor() {
+                super();
+                this.capturing = true;
+                this.port.onmessage = (event) => {
+                    if (event.data === "stop") {
+                        this.capturing = false;
+                        this.port.postMessage({ type: "stopped" });
+                    }
+                };
+            }
+
+            process(inputs, outputs) {
+                const input = inputs[0];
+                if (this.capturing && input && input.length > 0) {
+                    const chunk = new Float32Array(input[0].length);
+                    for (const channel of input) {
+                        for (let index = 0; index < channel.length; index += 1) {
+                            chunk[index] += channel[index] / input.length;
+                        }
+                    }
+                    this.port.postMessage(
+                        { type: "chunk", buffer: chunk.buffer },
+                        [chunk.buffer],
+                    );
+                }
+
+                for (const output of outputs) {
+                    for (const channel of output) {
+                        channel.fill(0);
+                    }
+                }
+                return true;
+            }
+        }
+
+        registerProcessor("willow-capture", WillowCaptureProcessor);
+    `;
+
+    function setStatus(message) {
+        status.textContent = message;
+    }
+
+    function combineChunks(parts) {
+        const length = parts.reduce((total, part) => total + part.length, 0);
+        const samples = new Float32Array(length);
+        let offset = 0;
+        for (const part of parts) {
+            samples.set(part, offset);
+            offset += part.length;
+        }
+        return samples;
+    }
+
+    async function resample(samples, sourceRate, targetRate) {
+        if (sourceRate === targetRate) {
+            return samples;
+        }
+
+        const outputLength = Math.round(samples.length * targetRate / sourceRate);
+        const context = new OfflineAudioContext(1, outputLength, targetRate);
+        const buffer = context.createBuffer(1, samples.length, sourceRate);
+        buffer.copyToChannel(samples, 0);
+
+        const source = context.createBufferSource();
+        source.buffer = buffer;
+        source.connect(context.destination);
+        source.start();
+
+        const rendered = await context.startRendering();
+        return rendered.getChannelData(0);
+    }
+
+    function encodePcm16(samples) {
+        const buffer = new ArrayBuffer(samples.length * 2);
+        const view = new DataView(buffer);
+
+        for (let index = 0; index < samples.length; index += 1) {
+            const sample = Math.max(-1, Math.min(1, samples[index]));
+            const value = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
+            view.setInt16(index * 2, Math.round(value), true);
+        }
+        return buffer;
+    }
+
+    function waitForWorkletStop() {
+        return new Promise((resolve) => {
+            const node = captureNode;
+            let settled = false;
+            let timeout;
+
+            function finish() {
+                if (settled) {
+                    return;
+                }
+                settled = true;
+                node.port.removeEventListener("message", stopped);
+                window.clearTimeout(timeout);
+                resolve();
+            }
+
+            function stopped(event) {
+                if (event.data.type === "stopped") {
+                    finish();
+                }
+            }
+
+            timeout = window.setTimeout(finish, 500);
+            node.port.addEventListener("message", stopped);
+            node.port.postMessage("stop");
+        });
+    }
+
+    async function startRecording() {
+        transcript.style.display = "none";
+        details.style.display = "none";
+        chunks = [];
+        button.disabled = true;
+        setStatus("Requesting microphone access…");
+
+        try {
+            if (!window.isSecureContext) {
+                throw new Error("Microphone capture requires HTTPS or localhost.");
+            }
+            if (!navigator.mediaDevices?.getUserMedia || !window.AudioWorkletNode) {
+                throw new Error("Microphone capture requires a supported browser over HTTPS or localhost.");
+            }
+
+            mediaStream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    channelCount: 1,
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                },
+                video: false,
+            });
+
+            audioContext = new AudioContext();
+            const moduleUrl = URL.createObjectURL(new Blob([workletSource], {
+                type: "text/javascript",
+            }));
+            try {
+                await audioContext.audioWorklet.addModule(moduleUrl);
+            } finally {
+                URL.revokeObjectURL(moduleUrl);
+            }
+
+            captureNode = new AudioWorkletNode(audioContext, "willow-capture", {
+                numberOfInputs: 1,
+                numberOfOutputs: 1,
+                outputChannelCount: [1],
+            });
+            captureNode.port.onmessage = (event) => {
+                if (event.data.type === "chunk") {
+                    chunks.push(new Float32Array(event.data.buffer));
+                }
+            };
+
+            mediaSource = audioContext.createMediaStreamSource(mediaStream);
+            mediaSource.connect(captureNode);
+            captureNode.connect(audioContext.destination);
+            await audioContext.resume();
+
+            recording = true;
+            button.disabled = false;
+            button.classList.add("recording");
+            button.textContent = "Stop and transcribe";
+            button.setAttribute("aria-pressed", "true");
+            setStatus("Recording…");
+            recordingTimer = window.setTimeout(stopAndTranscribe, MAX_RECORDING_MS);
+        } catch (error) {
+            await cleanUpAudio();
+            button.disabled = false;
+            setStatus(error.message || String(error));
+        }
+    }
+
+    async function cleanUpAudio() {
+        window.clearTimeout(recordingTimer);
+        mediaStream?.getTracks().forEach((track) => track.stop());
+        mediaSource?.disconnect();
+        captureNode?.disconnect();
+        if (audioContext && audioContext.state !== "closed") {
+            await audioContext.close();
+        }
+        mediaStream = undefined;
+        mediaSource = undefined;
+        captureNode = undefined;
+        audioContext = undefined;
+    }
+
+    async function stopAndTranscribe() {
+        if (!recording) {
+            return;
+        }
+
+        recording = false;
+        button.disabled = true;
+        button.classList.remove("recording");
+        button.textContent = "Start recording";
+        button.setAttribute("aria-pressed", "false");
+        setStatus("Preparing audio…");
+
+        try {
+            const sourceRate = audioContext.sampleRate;
+            await waitForWorkletStop();
+            await cleanUpAudio();
+
+            const captured = combineChunks(chunks);
+            if (captured.length === 0) {
+                throw new Error("No audio was captured.");
+            }
+            const samples = await resample(captured, sourceRate, TARGET_SAMPLE_RATE);
+
+            setStatus("Transcribing…");
+            const response = await fetch("/api/willow", {
+                method: "POST",
+                headers: {
+                    "content-type": "application/octet-stream",
+                    "x-audio-bits": "16",
+                    "x-audio-channel": "1",
+                    "x-audio-codec": "pcm",
+                    "x-audio-sample-rate": String(TARGET_SAMPLE_RATE),
+                },
+                body: encodePcm16(samples),
+            });
+
+            if (!response.ok) {
+                const message = await response.text();
+                throw new Error(message || `Transcription failed with HTTP ${response.status}.`);
+            }
+
+            const result = await response.json();
+            transcript.textContent = result.text || "(No speech recognized)";
+            transcript.style.display = "block";
+            details.textContent = [
+                result.language,
+                result.audio_duration != null ? `${result.audio_duration} ms audio` : null,
+                result.infer_speedup != null ? `${Number(result.infer_speedup).toFixed(2)}× realtime` : null,
+            ].filter(Boolean).join(" · ");
+            details.style.display = details.textContent ? "block" : "none";
+            setStatus("Done.");
+        } catch (error) {
+            await cleanUpAudio();
+            setStatus(error.message || String(error));
+        } finally {
+            chunks = [];
+            button.disabled = false;
+        }
+    }
+
+    button.addEventListener("click", () => {
+        if (recording) {
+            stopAndTranscribe();
+        } else {
+            startRecording();
+        }
+    });
+})();
+</script>
+{% endif %}
+{% endblock %}

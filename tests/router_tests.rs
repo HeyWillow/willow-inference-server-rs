@@ -84,6 +84,51 @@ mod tests {
         assert_eq!(response.status(), StatusCode::OK);
     }
 
+    #[tokio::test]
+    async fn test_router_stt_get() {
+        let state = State::new();
+        let router = router(state);
+        let response = router
+            .oneshot(Request::builder().uri("/stt").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response.headers().get(http::header::CONTENT_TYPE).unwrap(),
+            "text/html; charset=utf-8"
+        );
+
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let body = String::from_utf8(body.to_vec()).unwrap();
+        assert!(body.contains("Speech to Text"));
+
+        #[cfg(feature = "stt")]
+        {
+            assert!(body.contains("id=\"record-button\""));
+            assert!(body.contains("x-audio-sample-rate"));
+        }
+
+        #[cfg(not(feature = "stt"))]
+        assert!(body.contains("built without speech-to-text support"));
+    }
+
+    #[tokio::test]
+    async fn test_router_root_redirects_to_stt() {
+        let response = router(State::new())
+            .oneshot(Request::builder().uri("/").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::TEMPORARY_REDIRECT);
+        assert_eq!(
+            response.headers().get(http::header::LOCATION).unwrap(),
+            "/stt"
+        );
+    }
+
     #[cfg(feature = "stt")]
     #[tokio::test]
     async fn test_router_api_willow_rejects_empty_audio() {

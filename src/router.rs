@@ -10,8 +10,9 @@ use crate::state::State;
 pub fn router(state: State) -> axum::Router {
     #[allow(unused_mut)]
     let mut router = Router::new()
-        .route("/", get(|| async { Redirect::temporary("/about") }))
+        .route("/", get(|| async { Redirect::temporary("/stt") }))
         .route("/about", get(crate::ui::handlers::about))
+        .route("/stt", get(crate::ui::handlers::stt))
         .route("/health", get(crate::routes::health::check));
 
     #[cfg(feature = "stt")]

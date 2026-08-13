@@ -26,3 +26,9 @@ pub struct AboutTemplate {
     pub licenses: Vec<LicenseEntry>,
     pub version: &'static str,
 }
+
+#[derive(Template)]
+#[template(path = "stt.html")]
+pub struct SttTemplate {
+    pub stt_enabled: bool,
+}
